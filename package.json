@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
+    "@supabase/supabase-js": "2.119.1",
     "@zxing/browser": "0.1.5",
     "@zxing/library": "0.21.3",
     "react": "^19.3.1",

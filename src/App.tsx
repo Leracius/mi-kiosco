@@ -1,11 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Catalog } from './catalog/Catalog'
-import { sampleProducts } from './catalog/sampleProducts'
+import { findProductByBarcode } from './catalog/findProductByBarcode'
+import { useCatalog } from './catalog/useCatalog'
+import { useAdmin } from './admin/useAdmin'
+import { AdminAccess } from './admin/AdminAccess'
+import { DeleteProductDialog } from './admin/ProductActions'
 import type { Product } from './catalog/product'
+import type { ProductInput } from './catalog/productInput'
 import { PriceEditor, ProductForm, ScanResult } from './KioskPanels'
 import { Scanner } from './scanner/Scanner'
-import { findProductByBarcode } from './catalog/findProductByBarcode'
 import { Icon, type IconName } from './Icon'
+import { InstallApp } from './InstallApp'
 
 const tabs: { path: string; label: string; icon: IconName }[] = [
   { path: 'escanear', label: 'Escanear', icon: 'scan' },
@@ -13,29 +18,33 @@ const tabs: { path: string; label: string; icon: IconName }[] = [
   { path: 'agregar', label: 'Agregar', icon: 'plus' },
 ]
 
-const initialProducts = [...sampleProducts]
-
 function readRoute() {
   return window.location.hash.slice(1) || 'productos'
 }
 
 export function App() {
   const [route, setRoute] = useState(readRoute)
-  const [products, setProducts] = useState(initialProducts)
-  const [selectedId, setSelectedId] = useState(initialProducts[0].id)
+  const [selectedId, setSelectedId] = useState('')
   const [scannedId, setScannedId] = useState('')
-  const product = products.find((item) => item.id === selectedId) ?? products[0]
-  const scannedProduct = products.find((item) => item.id === scannedId)
+  const { state, retry, saveLocally, removeLocally } = useCatalog()
+  const { repository, session, ready, isAdmin } = useAdmin()
+  const [deleteTarget, setDeleteTarget] = useState<Product>()
+  const [notice, setNotice] = useState('')
+  const products = state.kind === 'ready' ? state.products : []
+  const selected = products.find((item) => item.id === selectedId) ?? products[0]
+  const scanned = products.find((item) => item.id === scannedId)
   const [page, productId] = route.split('/')
+  const scannedBarcode = page === 'agregar' && productId && /^(?:\d{8}|\d{12}|\d{13})$/.test(productId)
+    ? productId
+    : undefined
+  const adminPage = page === 'admin'
+  const formPage = adminPage || page === 'agregar' || page === 'precio' || page === 'editar'
   const editing = products.find((item) => item.id === productId)
-  const detail = page === 'producto' ? editing : undefined
   const detailPage = page === 'producto'
-  const adding = page === 'agregar'
-  const editingPrice = page === 'precio' && editing !== undefined
-  const formPage = adding || editingPrice
+  const detail = detailPage ? products.find((item) => item.id === productId) : undefined
   const scanning = page === 'escanear'
-  const title = detailPage ? 'Tus productos' : adding ? 'Nuevo producto' : editingPrice ? 'Modificar precio' : scanning ? 'Escaneá y listo.' : 'Tus productos'
-  const subtitle = adding ? 'Sumá un producto a tu catálogo.' : editingPrice ? 'Un cambio rápido. Todo actualizado.' : scanning ? 'Consultá precios en un instante.' : 'Todo tu kiosco, en un solo lugar.'
+  const title = adminPage ? 'Administración' : page === 'editar' ? 'Editar producto' : page === 'agregar' ? 'Nuevo producto' : page === 'precio' ? 'Modificar precio' : scanning ? 'Escaneá y listo.' : 'Tus productos'
+  const subtitle = scanning ? 'Consultá precios en un instante.' : 'Todo tu kiosco, en un solo lugar.'
 
   useEffect(() => {
     function onHashChange() {
@@ -50,11 +59,6 @@ export function App() {
     document.getElementById('page-title')?.focus({ preventScroll: true })
   }, [route])
 
-  function updatePrice(id: string, priceInCents: number) {
-    setProducts((items) => items.map((item) => item.id === id ? { ...item, priceInCents } : item))
-    setSelectedId(id)
-  }
-
   function findBarcode(barcode: string) {
     const match = findProductByBarcode(products, barcode)
     setScannedId(match?.id ?? '')
@@ -62,24 +66,46 @@ export function App() {
     return Boolean(match)
   }
 
-  function saveProduct(values: Omit<Product, 'id'>) {
-    const newProduct = { ...values, id: crypto.randomUUID() }
-    setProducts((items) => [newProduct, ...items])
-    setSelectedId(newProduct.id)
+  function adminRepository() {
+    if (!repository || !isAdmin) throw new Error('Necesitás una sesión de administración activa.')
+    return repository
+  }
+
+  async function saveProduct(values: ProductInput) {
+    const admin = adminRepository()
+    const product = page === 'editar' && editing
+      ? await admin.updateProduct(editing.id, values)
+      : await admin.createProduct(values)
+    saveLocally(product)
+    setNotice(page === 'editar' ? 'Producto actualizado.' : 'Producto agregado.')
     window.location.hash = 'productos'
   }
 
+  async function savePrice(cents: number) {
+    if (!editing) return
+    const product = await adminRepository().updateProduct(editing.id, { priceInCents: cents })
+    saveLocally(product)
+    setNotice('Precio actualizado.')
+    window.location.hash = 'productos'
+  }
+
+  async function deleteProduct(id: string) {
+    await adminRepository().deleteProduct(id)
+    removeLocally(id)
+    setDeleteTarget(undefined)
+    setNotice('Producto eliminado.')
+    document.getElementById('page-title')?.focus({ preventScroll: true })
+  }
+
   function navigation(items: typeof tabs, className: string) {
+    const activePage = scanning ? 'escanear' : formPage ? page : 'productos'
     return (
       <nav className={className} aria-label="Navegación principal">
-        {items.map((tab) => {
-          const active = tab.path === (scanning ? 'escanear' : 'productos')
-          return (
-            <a key={tab.path} href={'#' + tab.path} aria-current={active ? 'page' : undefined}>
-              <Icon name={tab.icon} /> {tab.label}
-            </a>
-          )
-        })}
+        {items.filter((tab) => isAdmin || tab.path !== 'agregar').map((tab) => (
+          <a key={tab.path} href={'#' + tab.path} aria-current={tab.path === activePage ? 'page' : undefined}>
+            <Icon name={tab.icon} /> {tab.label}
+          </a>
+        ))}
       </nav>
     )
   }
@@ -90,43 +116,62 @@ export function App() {
         <div className="topbar-inner">
           <a className="brand" href="#productos">kiosco<span>●</span></a>
           {navigation([tabs[1], tabs[0]], 'desktop-nav')}
-          <span className="online" title="Estado simulado para la demostración"><span aria-hidden="true">●</span> En línea</span>
+          <a className="admin-link" href="#admin">{isAdmin ? 'Administración' : 'Acceso admin'}</a>
+          {state.kind === 'ready' && <span className="online"><span aria-hidden="true">●</span> En línea</span>}
         </div>
       </header>
       <main className="shell">
         <header className="page-heading">
-          {detailPage && <a className="back detail-back" href="#productos" aria-label="Volver a la búsqueda"><Icon name="back" /></a>}
-          {formPage && <a className="back" href="#productos" aria-label="Volver a productos"><Icon name="back" /></a>}
+          {(detailPage || formPage) && <a className="back detail-back" href="#productos" aria-label="Volver a la búsqueda"><Icon name="back" /></a>}
           <h1 id="page-title" tabIndex={-1}>{title}</h1>
-          <p>{subtitle}</p>
-          {!formPage && !detailPage && <a className="button primary desktop-add" href="#agregar">+ Agregar producto</a>}
+          {!formPage && <p>{subtitle}</p>}
+          <div hidden={formPage || detailPage}><InstallApp /></div>
+          {isAdmin && !formPage && !detailPage && !scanning && <a className="button primary desktop-add" href="#agregar">+ Agregar producto</a>}
         </header>
-        {adding && <ProductForm key={route} scanned={productId === 'codigo'} products={products} onSave={saveProduct} />}
-        {editingPrice && (
-          <PriceEditor key={editing.id} product={editing} onSave={(value) => {
-            updatePrice(editing.id, value)
-            window.location.hash = 'productos'
-          }} />
+        {notice && !formPage && <p className="catalog-notice" role="status">{notice}</p>}
+        {adminPage && <AdminAccess auth={repository?.auth} ready={ready} signedIn={Boolean(session)} isAdmin={isAdmin} />}
+        {formPage && !adminPage && !isAdmin && (
+          <p className="empty">Para modificar el catálogo, <a href="#admin">iniciá sesión como administrador</a>.</p>
         )}
-        {detailPage && (
+        {formPage && !adminPage && isAdmin && state.kind === 'ready' && (
+          page === 'agregar'
+            ? <ProductForm key={route} scannedBarcode={scannedBarcode} onSave={saveProduct} />
+            : editing
+              ? page === 'precio'
+                ? <PriceEditor key={editing.id} product={editing} onSave={savePrice} />
+                : <ProductForm key={editing.id} product={editing} onSave={saveProduct} />
+              : <p className="empty" role="status">No encontramos ese producto.</p>
+        )}
+        {deleteTarget && isAdmin && <DeleteProductDialog key={deleteTarget.id} product={deleteTarget} onCancel={() => setDeleteTarget(undefined)} onConfirm={deleteProduct} />}
+        {(!formPage || (isAdmin && !adminPage)) && state.kind === 'loading' && <p className="empty" role="status">Cargando catálogo…</p>}
+        {!formPage && state.kind === 'configuration' && <p className="empty" role="status">{state.message}</p>}
+        {(!formPage || (isAdmin && !adminPage)) && state.kind === 'error' && (
+          <div className="empty">
+            <p role="alert">No pudimos cargar el catálogo. Revisá la conexión y reintentá.</p>
+            <button className="button secondary catalog-retry" type="button" onClick={retry}>Reintentar</button>
+          </div>
+        )}
+        {detailPage && state.kind === 'ready' && (
           detail
-            ? <div className="product-detail"><ScanResult product={detail} readOnly /></div>
+            ? <div className="product-detail"><ScanResult product={detail} readOnly={!isAdmin} /></div>
             : <p className="empty" role="status">No encontramos ese producto.</p>
         )}
-        <div hidden={formPage || detailPage}>
-          <div className={'workspace ' + (scanning ? 'workspace--scan' : 'workspace--catalog')}>
-            <aside className="scanner-column" aria-label="Escáner de productos">
-              <h2 className="scanner-heading">Escaneá y listo.</h2>
-              <Scanner key={scanning ? 'scan' : 'idle'} enabled={scanning} onLookup={findBarcode}>
-                {scannedProduct && <ScanResult product={scannedProduct} readOnly />}
-              </Scanner>
-              {!scanning && <div className="desktop-result">
-                <PriceEditor key={product.id} product={product} compact onSave={(value) => updatePrice(product.id, value)} />
-              </div>}
-            </aside>
-            <Catalog products={products} selectedId={product.id} onSelect={setSelectedId} />
+        {state.kind === 'ready' && (
+          <div hidden={formPage || detailPage}>
+            <div className={'workspace ' + (scanning ? 'workspace--scan' : 'workspace--catalog')}>
+              <aside className="scanner-column" aria-label="Escáner de productos">
+                <h2 className="scanner-heading">Escaneá y listo.</h2>
+                <Scanner key={scanning ? 'scan' : 'idle'} enabled={scanning} canAddProduct={isAdmin} onLookup={findBarcode}>
+                  {scanned && <ScanResult product={scanned} readOnly />}
+                </Scanner>
+                {!scanning && selected && (
+                  <div className="desktop-result"><ScanResult product={selected} readOnly={!isAdmin} /></div>
+                )}
+              </aside>
+              <Catalog products={products} selectedId={selected?.id} onSelect={setSelectedId} onDelete={isAdmin ? setDeleteTarget : undefined} />
+            </div>
           </div>
-        </div>
+        )}
       </main>
       {!formPage && navigation(tabs, 'mobile-nav')}
     </div>

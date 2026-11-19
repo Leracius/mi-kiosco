@@ -8,3 +8,9 @@ import './catalog/catalog.css'
 import './styles.css'
 
 createRoot(document.getElementById('root')!).render(<App />)
+
+if (import.meta.env.PROD && window.isSecureContext && 'serviceWorker' in navigator) {
+  void navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch((error: unknown) => {
+    console.warn('No se pudo registrar el Service Worker de Mi Kiosco.', error)
+  })
+}

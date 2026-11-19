@@ -31,11 +31,12 @@ function cameraError(error: unknown) {
 
 type ScannerProps = {
   enabled: boolean
+  canAddProduct: boolean
   onLookup: (barcode: string) => boolean
   children?: ReactNode
 }
 
-export function Scanner({ enabled, onLookup, children }: ScannerProps) {
+export function Scanner({ enabled, canAddProduct, onLookup, children }: ScannerProps) {
   const [state, setState] = useState<CameraState>({ kind: 'idle' })
   const [manual, setManual] = useState(false)
   const [torchAvailable, setTorchAvailable] = useState(false)
@@ -250,6 +251,9 @@ export function Scanner({ enabled, onLookup, children }: ScannerProps) {
           {busy
             ? <button className="button secondary" type="button" onClick={stop}>Detener escaneo</button>
             : <button className="button primary" type="button" onClick={start}>{state.kind === 'idle' ? 'Escanear producto' : 'Volver a escanear'}</button>}
+          {state.kind === 'missing' && canAddProduct && (
+            <a className="button primary" href={'#agregar/' + state.barcode}>Agregar producto</a>
+          )}
           {(state.kind === 'missing' || state.kind === 'error') && <a className="button white" href="#productos">Buscar por nombre</a>}
         </div>
       ) : <a className="button primary scanner-open" href="#escanear">Escanear producto</a>}

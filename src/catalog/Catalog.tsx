@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { ProductActions } from '../admin/ProductActions'
 import { formatPrice } from './formatPrice'
 import { Icon } from '../Icon'
 import { ProductCatalog } from './ProductCatalog'
@@ -7,11 +8,12 @@ import { searchProducts } from './searchProducts'
 
 type Props = {
   products: readonly Product[]
-  selectedId: string
+  selectedId?: string
+  onDelete?: (product: Product) => void
   onSelect: (id: string) => void
 }
 
-export function Catalog({ products, selectedId, onSelect }: Props) {
+export function Catalog({ products, selectedId, onSelect, onDelete }: Props) {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('Todos')
   const [order, setOrder] = useState('recent')
@@ -54,10 +56,10 @@ export function Catalog({ products, selectedId, onSelect }: Props) {
           </button>
         </div>
       </div>
-      {visible.length === 0 && <p className="empty" role="status">No encontramos productos.</p>}
+      {visible.length === 0 && <p className="empty" role="status">{products.length ? 'No encontramos productos.' : 'El catálogo todavía no tiene productos.'}</p>}
       <div className="mobile-catalog">
-        <ProductCatalog products={visible} />
-        <a className="button primary add-action" href="#agregar">+ Agregar producto</a>
+        <ProductCatalog products={visible} onDelete={onDelete} />
+        {onDelete && <a className="button primary add-action" href="#agregar">+ Agregar producto</a>}
       </div>
       <div className="desktop-catalog">
         <table>
@@ -69,7 +71,7 @@ export function Catalog({ products, selectedId, onSelect }: Props) {
                 <td>{product.presentation}</td>
                 <td>{product.category && <span className="category">{product.category}</span>}</td>
                 <td className="table-price">{formatPrice(product.priceInCents)}</td>
-                <td><button className="button table-action" type="button" aria-label={'Editar precio de ' + product.name} onClick={() => onSelect(product.id)}>Editar precio</button></td>
+                <td><div className="row-actions"><button className="button table-action" type="button" aria-label={'Ver precio de ' + product.name} onClick={() => onSelect(product.id)}>Ver precio</button>{onDelete && <ProductActions product={product} onDelete={onDelete} />}</div></td>
               </tr>
             ))}
           </tbody>
@@ -77,7 +79,7 @@ export function Catalog({ products, selectedId, onSelect }: Props) {
         <div className="table-footer">
           <span role="status">Mostrando {visible.length ? '1–' + visible.length : 0} de {products.length} productos</span>
           <div className="pagination" aria-label="Página 1 de 1"><span>1</span><button type="button" disabled aria-label="Página siguiente"><Icon name="next" /></button></div>
-          <p>Seleccioná un producto para actualizar su precio en el panel izquierdo.</p>
+          <p>Seleccioná un producto para consultar su precio en el panel izquierdo.</p>
         </div>
       </div>
     </section>

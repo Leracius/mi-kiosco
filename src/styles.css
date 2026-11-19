@@ -14,7 +14,8 @@
 body { margin: 0; }
 h1, h2, p { margin: 0; }
 a { color: inherit; }
-button, input, select { font: inherit; color: inherit; }
+button, input, select, textarea { font: inherit; color: inherit; }
+input, select, textarea { font-size: max(16px, 1rem); }
 button, select { cursor: pointer; }
 button:disabled { cursor: default; opacity: .5; }
 :focus-visible { outline: 2px solid var(--green); outline-offset: 3px; }
@@ -108,7 +109,7 @@ span.icon { font-size: 1.35em; line-height: 1; }
 }
 input::placeholder { color: var(--muted); }
 .select-icon select { appearance: none; }
-.catalog-search input, .catalog-search select { font-size: .8125rem; }
+
 .filters { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .filters button {
   min-height: 34px;
@@ -178,7 +179,7 @@ input::placeholder { color: var(--muted); }
 .new-product > .badge { justify-self: start; }
 .field { display: grid; gap: 7px; min-width: 0; font-size: .8125rem; font-weight: 600; }
 .field > input, .manual input { min-height: 48px; padding: 0 12px; border: 1px solid var(--border); border-radius: 11px; background: white; }
-.field input, .field select { font-size: .875rem; font-weight: 400; }
+.field input, .field select { font-weight: 400; }
 .field small, .required, .form-help { color: var(--muted); font-size: .6875rem; font-weight: 400; }
 .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .field-pair input { min-width: 0; }
@@ -277,6 +278,7 @@ input::placeholder { color: var(--muted); }
 }
 
 .product-detail { max-width: 480px; }
+.catalog-retry { margin-top: 12px; }
 .detail-back { width: 44px; margin-bottom: 8px; }
 .product-link { text-decoration: none; }
 .product-link:hover { text-decoration: underline; }
@@ -296,3 +298,81 @@ input::placeholder { color: var(--muted); }
 .scanner-actions p { width: 100%; color: var(--muted); font-size: .8125rem; }
 .scanner-status:empty { display: none; }
 .scanner-open { margin-top: 12px; width: 100%; }
+
+.admin-link { margin-left: auto; font-size: .75rem; color: var(--green); }
+.topbar .admin-link + .online { margin-left: 0; }
+.app--form .topbar:has(.admin-link) { display: block; }
+.admin-access { max-width: 420px; }
+.catalog-notice { margin-block: 12px; padding: 10px 14px; border-radius: 10px; background: var(--soft); }
+.managed-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+.row-actions { display: flex; align-items: center; gap: 4px; }
+.product-actions { position: relative; flex: none; }
+.product-actions summary {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  min-height: 36px;
+  padding: 0;
+  border-radius: 8px;
+  background: var(--soft);
+  color: var(--green);
+  cursor: pointer;
+  list-style: none;
+  font-size: 1.25rem;
+}
+.product-actions summary::-webkit-details-marker { display: none; }
+.product-actions summary:hover { background: var(--border); }
+.product-actions-menu {
+  position: absolute;
+  z-index: 2;
+  right: 0;
+  min-width: 160px;
+  padding: 4px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 4px 12px #0002;
+}
+.product-actions-menu a, .product-actions-menu button {
+  display: block;
+  width: 100%;
+  padding: 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font-size: .8125rem;
+  text-align: left;
+  text-decoration: none;
+}
+.product-actions-menu button { color: #9a2828; }
+.product-actions-menu a:hover, .product-actions-menu button:hover { background: var(--soft); }
+.delete-dialog {
+  width: min(calc(100% - 32px), 420px);
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  color: var(--ink);
+}
+.delete-dialog::backdrop { background: #122a23aa; }
+.delete-dialog p { margin-top: 12px; overflow-wrap: anywhere; }
+.delete-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.danger { background: #9a2828; color: white; }
+.danger:hover:not(:disabled) { background: #752020; }
+
+@media (max-width: 365px) {
+  .topbar-inner { gap: 8px; }
+  .topbar .online { padding-inline: 8px; }
+}
+
+.install-app { margin-block-start: 5px; }
+.install-app button {
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--green);
+  font-size: .75rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.install-app p { max-width: 45ch; margin-block-start: 0; line-height: 1.45; }

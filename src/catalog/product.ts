@@ -5,4 +5,7 @@ export type Product = {
   barcode?: string
   category?: string
   presentation?: string
+  isFrequent?: boolean
+  createdAt?: string
+  updatedAt?: string
 }

@@ -1,0 +1,17 @@
+{
+  "id": "/",
+  "name": "Mi Kiosco",
+  "short_name": "Mi Kiosco",
+  "description": "Buscá productos y consultá precios en tu kiosco.",
+  "lang": "es-AR",
+  "start_url": "/#productos",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f8f6",
+  "theme_color": "#235c46",
+  "icons": [
+    { "src": "/icons/kiosco-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/kiosco-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/kiosco-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
