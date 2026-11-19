@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { Catalog } from './catalog/Catalog'
 import { sampleProducts } from './catalog/sampleProducts'
 import type { Product } from './catalog/product'
-import { PriceEditor, ProductForm, Scanner, ScanResult } from './KioskPanels'
+import { PriceEditor, ProductForm, ScanResult } from './KioskPanels'
+import { Scanner } from './scanner/Scanner'
+import { findProductByBarcode } from './catalog/findProductByBarcode'
 import { Icon, type IconName } from './Icon'
 
 const tabs: { path: string; label: string; icon: IconName }[] = [
@@ -21,7 +23,7 @@ export function App() {
   const [route, setRoute] = useState(readRoute)
   const [products, setProducts] = useState(initialProducts)
   const [selectedId, setSelectedId] = useState(initialProducts[0].id)
-  const [scannedId, setScannedId] = useState(initialProducts[0].id)
+  const [scannedId, setScannedId] = useState('')
   const product = products.find((item) => item.id === selectedId) ?? products[0]
   const scannedProduct = products.find((item) => item.id === scannedId)
   const [page, productId] = route.split('/')
@@ -54,7 +56,7 @@ export function App() {
   }
 
   function findBarcode(barcode: string) {
-    const match = products.find((item) => item.barcode === barcode)
+    const match = findProductByBarcode(products, barcode)
     setScannedId(match?.id ?? '')
     if (match) setSelectedId(match.id)
     return Boolean(match)
@@ -115,11 +117,12 @@ export function App() {
           <div className={'workspace ' + (scanning ? 'workspace--scan' : 'workspace--catalog')}>
             <aside className="scanner-column" aria-label="Escáner de productos">
               <h2 className="scanner-heading">Escaneá y listo.</h2>
-              <Scanner onLookup={findBarcode} showManual={scanning} />
-              <div className="mobile-result"><ScanResult product={scannedProduct} /></div>
-              <div className="desktop-result">
+              <Scanner key={scanning ? 'scan' : 'idle'} enabled={scanning} onLookup={findBarcode}>
+                {scannedProduct && <ScanResult product={scannedProduct} readOnly />}
+              </Scanner>
+              {!scanning && <div className="desktop-result">
                 <PriceEditor key={product.id} product={product} compact onSave={(value) => updatePrice(product.id, value)} />
-              </div>
+              </div>}
             </aside>
             <Catalog products={products} selectedId={product.id} onSelect={setSelectedId} />
           </div>

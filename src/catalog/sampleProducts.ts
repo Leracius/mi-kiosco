@@ -33,6 +33,7 @@ export const sampleProducts: readonly Product[] = [
   },
   {
     id: 'beldent',
+    barcode: '96385074',
     name: 'Chicle Beldent menta',
     presentation: '10 g',
     category: 'Golosinas',
@@ -111,6 +112,7 @@ export const sampleProducts: readonly Product[] = [
   },
   {
     id: 'palitos',
+    barcode: '036000291452',
     name: 'Palitos salados',
     presentation: '80 g',
     category: 'Snacks',

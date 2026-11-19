@@ -3,49 +3,8 @@ import { formatPrice } from './catalog/formatPrice'
 import { Icon } from './Icon'
 import type { Product } from './catalog/product'
 
-const barcodeWidths = [2, 1, 4, 2, 1, 3, 1, 2, 4, 1, 2, 3, 1, 2, 1, 3, 2, 4, 1, 2, 2, 1, 4, 2, 1, 3, 1, 2, 4, 1, 3, 2, 1, 2]
-
 function Badge({ children }: { children: string }) {
   return <span className="badge"><Icon name="check" /> {children}</span>
-}
-
-export function Scanner({ onLookup, showManual }: { onLookup: (barcode: string) => boolean; showManual: boolean }) {
-  const [manual, setManual] = useState(false)
-  const [light, setLight] = useState(false)
-  const [missing, setMissing] = useState(false)
-
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const barcode = String(new FormData(event.currentTarget).get('barcode')).trim()
-    setMissing(!onLookup(barcode))
-  }
-
-  return (
-    <>
-      <div className={light ? 'scanner scanner--lit' : 'scanner'} aria-label="Visor de demostración">
-        <span className="scanner-label">Lector de código de barras</span>
-        <button className="flash" type="button" aria-label="Cambiar iluminación del visor simulado" aria-pressed={light} onClick={() => setLight(!light)}><Icon name="flash" /></button>
-        <div className="scan-guide" aria-hidden="true">
-          <div className="barcode">{barcodeWidths.map((width, index) => <span key={index} style={{ inlineSize: width }} />)}</div>
-          <div className="scan-line" />
-          <span className="scan-dot"><Icon name="scanCheck" /></span>
-        </div>
-        <span className="scanner-caption">Alineá el código dentro del recuadro</span>
-      </div>
-      {showManual && (
-        <div className="manual">
-          <button type="button" aria-expanded={manual} onClick={() => setManual(!manual)}>También podés ingresar el código manualmente</button>
-          {manual && (
-            <form onSubmit={submit}>
-              <input name="barcode" aria-label="Código de barras" placeholder="Código de barras" inputMode="numeric" pattern="[0-9]+" required />
-              <button className="button primary" type="submit">Buscar</button>
-            </form>
-          )}
-          {manual && missing && <p role="status">No encontramos ese código.</p>}
-        </div>
-      )}
-    </>
-  )
 }
 
 export function ScanResult({ product, readOnly = false }: { product?: Product; readOnly?: boolean }) {
